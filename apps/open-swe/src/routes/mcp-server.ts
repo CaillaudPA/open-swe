@@ -110,7 +110,8 @@ mcpServerApp.get(MCP_API_PATHS.HEALTH.CHECK, (c) => {
 /**
  * Metrics endpoint
  */
-mcpServerApp.get(MCP_API_PATHS.HEALTH.METRICS, validateMCPAuth, (c) => {
+mcpServerApp.get(MCP_API_PATHS.HEALTH.METRICS, (c) => {
+  validateMCPAuth(c);
   const agents = Array.from(registeredAgents.values()).map(agent => ({
     agentId: agent.agentId,
     name: agent.name,
@@ -540,6 +541,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
