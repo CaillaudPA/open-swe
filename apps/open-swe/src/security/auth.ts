@@ -18,6 +18,12 @@ import { verifyGitHubWebhookOrThrow } from "./github.js";
 import { createWithOwnerMetadata, createOwnerFilter } from "./utils.js";
 import { LANGGRAPH_USER_PERMISSIONS } from "../constants.js";
 import { getGitHubPatFromRequest } from "../utils/github-pat.js";
+import { verifyJWT, createJWT } from "@open-swe/shared/jwt";
+import { 
+  AgentCapability, 
+  GraphTarget,
+  type AgentRegistration 
+} from "@open-swe/shared/open-swe/mcp-server";
 
 // TODO: Export from LangGraph SDK
 export interface BaseAuthReturn {
@@ -200,3 +206,4 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
