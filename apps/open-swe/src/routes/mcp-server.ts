@@ -238,7 +238,7 @@ mcpServerApp.delete(MCP_API_PATHS.AGENTS.UNREGISTER, validateMCPAuth, parseJsonB
  * Agent heartbeat endpoint
  */
 mcpServerApp.post(MCP_API_PATHS.AGENTS.HEARTBEAT, validateMCPAuth, parseJsonBody, async (c) => {
-  const body = c.get("body");
+  const body = c.get("parsedBody") as any;
   
   try {
     const heartbeat = AgentHeartbeatSchema.parse({
@@ -548,6 +548,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 });
 
 export { mcpServerApp };
+
 
 
 
