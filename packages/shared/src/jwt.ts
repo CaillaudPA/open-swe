@@ -37,17 +37,17 @@ export function createMCPAgentJWT(
   capabilities: string[],
   supportedGraphs: string[],
   secret: string,
-  expirationHours: number = 24
+  expirationHours: number = 24,
 ): string {
   const now = Math.floor(Date.now() / 1000);
-  
+
   const payload: MCPAgentJWTPayload = {
     agentId,
     agentName,
     capabilities,
     supportedGraphs,
     iat: now,
-    exp: now + (expirationHours * 60 * 60),
+    exp: now + expirationHours * 60 * 60,
     iss: "open-swe-mcp-server",
   };
 
@@ -59,14 +59,14 @@ export function createMCPAgentJWT(
  */
 export function verifyMCPAgentJWT(
   token: string,
-  secret: string
+  secret: string,
 ): MCPAgentJWTPayload | null {
   try {
-    const decoded = jsonwebtoken.verify(token, secret, { 
+    const decoded = jsonwebtoken.verify(token, secret, {
       algorithms: ["HS256"],
-      issuer: "open-swe-mcp-server"
+      issuer: "open-swe-mcp-server",
     }) as MCPAgentJWTPayload;
-    
+
     return decoded;
   } catch (_error) {
     return null;
@@ -77,8 +77,8 @@ export function verifyMCPAgentJWT(
  * Creates a simple API key hash for MCP agents
  */
 export function createAPIKeyHash(agentId: string, secret: string): string {
-  const crypto = await import('crypto');
-  return crypto.createHmac('sha256', secret).update(agentId).digest('hex');
+  const crypto = await import("crypto");
+  return crypto.createHmac("sha256", secret).update(agentId).digest("hex");
 }
 
 /**
@@ -87,11 +87,8 @@ export function createAPIKeyHash(agentId: string, secret: string): string {
 export function verifyAPIKeyHash(
   apiKey: string,
   agentId: string,
-  secret: string
+  secret: string,
 ): boolean {
   const expectedHash = createAPIKeyHash(agentId, secret);
   return apiKey === expectedHash;
 }
-
-
-

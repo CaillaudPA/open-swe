@@ -81,7 +81,7 @@ export class MCPTaskManager {
    */
   async submitTask(taskRequest: AgentTaskRequest): Promise<AgentTaskResponse> {
     const taskId = taskRequest.taskId!;
-    
+
     logger.info(`Submitting task: ${taskId}`, {
       agentId: taskRequest.agentId,
       targetGraph: taskRequest.targetGraph,
@@ -97,7 +97,9 @@ export class MCPTaskManager {
       targetGraph: taskRequest.targetGraph,
       queuedAt: Date.now(),
       estimatedDuration: taskRequest.timeout,
-      dependencies: taskRequest.context?.parentTaskId ? [taskRequest.context.parentTaskId] : undefined,
+      dependencies: taskRequest.context?.parentTaskId
+        ? [taskRequest.context.parentTaskId]
+        : undefined,
     };
 
     // Create initial task response
@@ -108,15 +110,17 @@ export class MCPTaskManager {
       startedAt: Date.now(),
       updatedAt: Date.now(),
       retryCount: 0,
-      logs: [{
-        timestamp: Date.now(),
-        level: "info",
-        message: "Task queued for execution",
-        metadata: {
-          targetGraph: taskRequest.targetGraph,
-          priority: taskRequest.priority,
+      logs: [
+        {
+          timestamp: Date.now(),
+          level: "info",
+          message: "Task queued for execution",
+          metadata: {
+            targetGraph: taskRequest.targetGraph,
+            priority: taskRequest.priority,
+          },
         },
-      }],
+      ],
     };
 
     // Store task data
@@ -176,13 +180,15 @@ export class MCPTaskManager {
     return Array.from(this.taskQueue.values()).sort((a, b) => {
       // Sort by priority first, then by queued time
       const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
-      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2;
-      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2;
-      
+      const aPriority =
+        priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2;
+      const bPriority =
+        priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2;
+
       if (aPriority !== bPriority) {
         return aPriority - bPriority;
       }
-      
+
       return a.queuedAt - b.queuedAt;
     });
   }
@@ -229,7 +235,7 @@ export class MCPTaskManager {
 
       // Get currently running tasks
       const runningTasks = Array.from(this.activeTasks.values()).filter(
-        task => task.status === TaskExecutionStatus.RUNNING
+        (task) => task.status === TaskExecutionStatus.RUNNING,
       );
 
       // Check if we can start new tasks
@@ -262,11 +268,11 @@ export class MCPTaskManager {
    */
   private async checkTaskTimeouts(): Promise<void> {
     const now = Date.now();
-    
+
     for (const [taskId, task] of this.activeTasks.entries()) {
       if (task.status === TaskExecutionStatus.RUNNING) {
         const executionTime = now - (task.startedAt || 0);
-        
+
         if (executionTime > this.taskTimeout) {
           logger.warn(`Task timeout: ${taskId}`, { executionTime });
           await this.handleTaskTimeout(taskId);
@@ -326,7 +332,7 @@ export class MCPTaskManager {
     try {
       // Route to appropriate graph
       const result = await this.routeToGraph(originalRequest, context);
-      
+
       // Update task with success
       task.status = TaskExecutionStatus.COMPLETED;
       task.completedAt = Date.now();
@@ -346,7 +352,6 @@ export class MCPTaskManager {
       logger.info(`Task completed successfully: ${taskId}`, {
         executionTime: Date.now() - context.startTime,
       });
-
     } catch (error) {
       await this.handleTaskError(taskId, error as Error);
     }
@@ -357,7 +362,7 @@ export class MCPTaskManager {
    */
   private async routeToGraph(
     taskRequest: AgentTaskRequest,
-    context: TaskExecutionContext
+    context: TaskExecutionContext,
   ): Promise<TaskExecutionResult> {
     const { targetGraph } = taskRequest;
     const client = createLangGraphClient();
@@ -376,17 +381,17 @@ export class MCPTaskManager {
         graphId = MANAGER_GRAPH_ID;
         input = this.createManagerGraphInput(taskRequest, context);
         break;
-      
+
       case GraphTarget.PLANNER:
         graphId = PLANNER_GRAPH_ID;
         input = this.createPlannerGraphInput(taskRequest, context);
         break;
-      
+
       case GraphTarget.PROGRAMMER:
         graphId = PROGRAMMER_GRAPH_ID;
         input = this.createProgrammerGraphInput(taskRequest, context);
         break;
-      
+
       default:
         throw new Error(`Unsupported graph target: ${targetGraph}`);
     }
@@ -430,7 +435,7 @@ export class MCPTaskManager {
 
     // Wait for completion
     const result = await this.waitForGraphCompletion(context, client);
-    
+
     return result;
   }
 
@@ -439,7 +444,7 @@ export class MCPTaskManager {
    */
   private createManagerGraphInput(
     taskRequest: AgentTaskRequest,
-    context: TaskExecutionContext
+    context: TaskExecutionContext,
   ): ManagerGraphUpdate {
     return {
       messages: [
@@ -463,7 +468,7 @@ export class MCPTaskManager {
    */
   private createPlannerGraphInput(
     taskRequest: AgentTaskRequest,
-    context: TaskExecutionContext
+    context: TaskExecutionContext,
   ): any {
     return {
       messages: [
@@ -485,18 +490,16 @@ export class MCPTaskManager {
    */
   private createProgrammerGraphInput(
     taskRequest: AgentTaskRequest,
-    context: TaskExecutionContext
+    context: TaskExecutionContext,
   ): any {
     // Create a simple task plan for the programmer
-    const taskPlan = createNewTask(
-      taskRequest.description,
-      taskRequest.title,
-      [{
+    const taskPlan = createNewTask(taskRequest.description, taskRequest.title, [
+      {
         index: 0,
         plan: taskRequest.description,
         completed: false,
-      }]
-    );
+      },
+    ]);
 
     return {
       messages: [
@@ -519,7 +522,7 @@ export class MCPTaskManager {
    */
   private async waitForGraphCompletion(
     context: TaskExecutionContext,
-    client: any
+    client: any,
   ): Promise<TaskExecutionResult> {
     const startTime = Date.now();
     const maxWaitTime = this.taskTimeout;
@@ -529,9 +532,10 @@ export class MCPTaskManager {
       try {
         // Get run status
         const run = await client.runs.get(context.threadId, context.runId!);
-        
+
         // Log progress periodically
-        if (Date.now() - lastLogTime > 30000) { // Every 30 seconds
+        if (Date.now() - lastLogTime > 30000) {
+          // Every 30 seconds
           context.logs.push({
             timestamp: Date.now(),
             level: "info",
@@ -573,8 +577,7 @@ export class MCPTaskManager {
         }
 
         // Wait before next check
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       } catch (error) {
         context.logs.push({
           timestamp: Date.now(),
@@ -662,15 +665,15 @@ export class MCPTaskManager {
    */
   getStatistics() {
     const runningTasks = Array.from(this.activeTasks.values()).filter(
-      task => task.status === TaskExecutionStatus.RUNNING
+      (task) => task.status === TaskExecutionStatus.RUNNING,
     ).length;
 
     const completedTasks = Array.from(this.activeTasks.values()).filter(
-      task => task.status === TaskExecutionStatus.COMPLETED
+      (task) => task.status === TaskExecutionStatus.COMPLETED,
     ).length;
 
     const failedTasks = Array.from(this.activeTasks.values()).filter(
-      task => task.status === TaskExecutionStatus.FAILED
+      (task) => task.status === TaskExecutionStatus.FAILED,
     ).length;
 
     return {
@@ -704,19 +707,17 @@ export function getMCPTaskManager(): MCPTaskManager {
 export function initializeMCPTaskManager(
   maxConcurrentTasks?: number,
   taskTimeout?: number,
-  processingInterval?: number
+  processingInterval?: number,
 ): MCPTaskManager {
   if (taskManagerInstance) {
     taskManagerInstance.stop();
   }
-  
+
   taskManagerInstance = new MCPTaskManager(
     maxConcurrentTasks,
     taskTimeout,
-    processingInterval
+    processingInterval,
   );
-  
+
   return taskManagerInstance;
 }
-
-

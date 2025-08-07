@@ -133,4 +133,3 @@ export const MCP_ERROR_MESSAGES = {
   AUTHENTICATION_REQUIRED: "MCP authentication required",
   INSUFFICIENT_PERMISSIONS: "Insufficient permissions for this operation",
 } as const;
-

@@ -69,12 +69,16 @@ export const AgentRegistrationSchema = z.object({
   agentId: z.string().min(1, "Agent ID is required"),
   name: z.string().min(1, "Agent name is required"),
   description: z.string().optional(),
-  capabilities: z.array(AgentCapabilitySchema).min(1, "At least one capability is required"),
+  capabilities: z
+    .array(AgentCapabilitySchema)
+    .min(1, "At least one capability is required"),
   version: z.string().default("1.0.0"),
   endpoint: z.string().url("Valid endpoint URL is required"),
   apiKey: z.string().min(1, "API key is required"),
   maxConcurrentTasks: z.number().int().positive().default(1),
-  supportedGraphs: z.array(GraphTargetSchema).min(1, "At least one supported graph is required"),
+  supportedGraphs: z
+    .array(GraphTargetSchema)
+    .min(1, "At least one supported graph is required"),
   metadata: z.record(z.string(), z.any()).optional(),
   registeredAt: z.number().optional(),
   lastHeartbeat: z.number().optional(),
@@ -91,23 +95,29 @@ export const AgentTaskRequestSchema = z.object({
   priority: TaskPrioritySchema.default(TaskPriority.NORMAL),
   targetGraph: GraphTargetSchema,
   requiredCapabilities: z.array(AgentCapabilitySchema).optional(),
-  context: z.object({
-    repository: z.object({
-      owner: z.string().min(1, "Repository owner is required"),
-      repo: z.string().min(1, "Repository name is required"),
-      branch: z.string().optional(),
-      baseCommit: z.string().optional(),
-    }).optional(),
-    pullRequestNumber: z.number().int().positive().optional(),
-    parentTaskId: z.string().uuid().optional(),
-    customRules: z.object({
-      generalRules: z.string().optional(),
-      repositoryStructure: z.string().optional(),
-      dependenciesAndInstallation: z.string().optional(),
-      testingInstructions: z.string().optional(),
-      pullRequestFormatting: z.string().optional(),
-    }).optional(),
-  }).optional(),
+  context: z
+    .object({
+      repository: z
+        .object({
+          owner: z.string().min(1, "Repository owner is required"),
+          repo: z.string().min(1, "Repository name is required"),
+          branch: z.string().optional(),
+          baseCommit: z.string().optional(),
+        })
+        .optional(),
+      pullRequestNumber: z.number().int().positive().optional(),
+      parentTaskId: z.string().uuid().optional(),
+      customRules: z
+        .object({
+          generalRules: z.string().optional(),
+          repositoryStructure: z.string().optional(),
+          dependenciesAndInstallation: z.string().optional(),
+          testingInstructions: z.string().optional(),
+          pullRequestFormatting: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
   timeout: z.number().int().positive().default(3600), // 1 hour default
   retryCount: z.number().int().min(0).max(3).default(0),
   metadata: z.record(z.string(), z.any()).optional(),
@@ -121,19 +131,25 @@ export const TaskExecutionResultSchema = z.object({
   success: z.boolean(),
   output: z.string().optional(),
   error: z.string().optional(),
-  artifacts: z.array(z.object({
-    type: z.string(),
-    path: z.string().optional(),
-    content: z.string().optional(),
-    metadata: z.record(z.string(), z.any()).optional(),
-  })).optional(),
-  metrics: z.object({
-    executionTime: z.number().optional(),
-    tokensUsed: z.number().optional(),
-    cost: z.number().optional(),
-    stepsCompleted: z.number().optional(),
-    totalSteps: z.number().optional(),
-  }).optional(),
+  artifacts: z
+    .array(
+      z.object({
+        type: z.string(),
+        path: z.string().optional(),
+        content: z.string().optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
+      }),
+    )
+    .optional(),
+  metrics: z
+    .object({
+      executionTime: z.number().optional(),
+      tokensUsed: z.number().optional(),
+      cost: z.number().optional(),
+      stepsCompleted: z.number().optional(),
+      totalSteps: z.number().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -144,18 +160,24 @@ export const AgentTaskResponseSchema = z.object({
   agentId: z.string().min(1, "Agent ID is required"),
   status: TaskExecutionStatusSchema,
   result: TaskExecutionResultSchema.optional(),
-  progress: z.object({
-    currentStep: z.number().int().min(0).optional(),
-    totalSteps: z.number().int().min(0).optional(),
-    description: z.string().optional(),
-    percentage: z.number().min(0).max(100).optional(),
-  }).optional(),
-  logs: z.array(z.object({
-    timestamp: z.number(),
-    level: z.enum(["debug", "info", "warn", "error"]),
-    message: z.string(),
-    metadata: z.record(z.string(), z.any()).optional(),
-  })).optional(),
+  progress: z
+    .object({
+      currentStep: z.number().int().min(0).optional(),
+      totalSteps: z.number().int().min(0).optional(),
+      description: z.string().optional(),
+      percentage: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+  logs: z
+    .array(
+      z.object({
+        timestamp: z.number(),
+        level: z.enum(["debug", "info", "warn", "error"]),
+        message: z.string(),
+        metadata: z.record(z.string(), z.any()).optional(),
+      }),
+    )
+    .optional(),
   startedAt: z.number().optional(),
   completedAt: z.number().optional(),
   updatedAt: z.number().optional(),
@@ -174,22 +196,28 @@ export const MCPServerConfigSchema = z.object({
   taskTimeout: z.number().int().positive().default(3600), // 1 hour
   agentTimeout: z.number().int().positive().default(300), // 5 minutes
   maxRetries: z.number().int().min(0).max(5).default(3),
-  rateLimiting: z.object({
-    enabled: z.boolean().default(true),
-    maxRequestsPerMinute: z.number().int().positive().default(60),
-    maxRequestsPerHour: z.number().int().positive().default(1000),
-  }).optional(),
-  authentication: z.object({
-    required: z.boolean().default(true),
-    jwtSecret: z.string().optional(),
-    apiKeyHeader: z.string().default("x-mcp-api-key"),
-    tokenExpiration: z.number().int().positive().default(86400), // 24 hours
-  }).optional(),
-  logging: z.object({
-    level: z.enum(["debug", "info", "warn", "error"]).default("info"),
-    enableRequestLogging: z.boolean().default(true),
-    enableTaskLogging: z.boolean().default(true),
-  }).optional(),
+  rateLimiting: z
+    .object({
+      enabled: z.boolean().default(true),
+      maxRequestsPerMinute: z.number().int().positive().default(60),
+      maxRequestsPerHour: z.number().int().positive().default(1000),
+    })
+    .optional(),
+  authentication: z
+    .object({
+      required: z.boolean().default(true),
+      jwtSecret: z.string().optional(),
+      apiKeyHeader: z.string().default("x-mcp-api-key"),
+      tokenExpiration: z.number().int().positive().default(86400), // 24 hours
+    })
+    .optional(),
+  logging: z
+    .object({
+      level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+      enableRequestLogging: z.boolean().default(true),
+      enableTaskLogging: z.boolean().default(true),
+    })
+    .optional(),
 });
 
 /**
@@ -199,11 +227,13 @@ export const AgentHeartbeatSchema = z.object({
   agentId: z.string().min(1, "Agent ID is required"),
   status: z.enum(["active", "idle", "busy", "offline"]),
   currentTasks: z.array(z.string().uuid()).optional(),
-  systemInfo: z.object({
-    cpuUsage: z.number().min(0).max(100).optional(),
-    memoryUsage: z.number().min(0).max(100).optional(),
-    diskUsage: z.number().min(0).max(100).optional(),
-  }).optional(),
+  systemInfo: z
+    .object({
+      cpuUsage: z.number().min(0).max(100).optional(),
+      memoryUsage: z.number().min(0).max(100).optional(),
+      diskUsage: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
   timestamp: z.number().optional(),
 });
 
@@ -224,18 +254,20 @@ export const TaskQueueItemSchema = z.object({
  * Agent discovery response schema
  */
 export const AgentDiscoveryResponseSchema = z.object({
-  agents: z.array(z.object({
-    agentId: z.string(),
-    name: z.string(),
-    description: z.string().optional(),
-    capabilities: z.array(AgentCapabilitySchema),
-    supportedGraphs: z.array(GraphTargetSchema),
-    status: z.enum(["active", "idle", "busy", "offline"]),
-    currentTasks: z.number().int().min(0),
-    maxConcurrentTasks: z.number().int().positive(),
-    registeredAt: z.number(),
-    lastHeartbeat: z.number(),
-  })),
+  agents: z.array(
+    z.object({
+      agentId: z.string(),
+      name: z.string(),
+      description: z.string().optional(),
+      capabilities: z.array(AgentCapabilitySchema),
+      supportedGraphs: z.array(GraphTargetSchema),
+      status: z.enum(["active", "idle", "busy", "offline"]),
+      currentTasks: z.number().int().min(0),
+      maxConcurrentTasks: z.number().int().positive(),
+      registeredAt: z.number(),
+      lastHeartbeat: z.number(),
+    }),
+  ),
   totalCount: z.number().int().min(0),
 });
 
@@ -249,7 +281,9 @@ export type TaskExecutionResult = z.infer<typeof TaskExecutionResultSchema>;
 export type MCPServerConfig = z.infer<typeof MCPServerConfigSchema>;
 export type AgentHeartbeat = z.infer<typeof AgentHeartbeatSchema>;
 export type TaskQueueItem = z.infer<typeof TaskQueueItemSchema>;
-export type AgentDiscoveryResponse = z.infer<typeof AgentDiscoveryResponseSchema>;
+export type AgentDiscoveryResponse = z.infer<
+  typeof AgentDiscoveryResponseSchema
+>;
 
 /**
  * API endpoint paths

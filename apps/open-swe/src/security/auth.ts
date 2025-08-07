@@ -18,13 +18,10 @@ import { verifyGitHubWebhookOrThrow } from "./github.js";
 import { createWithOwnerMetadata, createOwnerFilter } from "./utils.js";
 import { LANGGRAPH_USER_PERMISSIONS } from "../constants.js";
 import { getGitHubPatFromRequest } from "../utils/github-pat.js";
-import { 
-  verifyMCPAgentJWT, 
-  verifyAPIKeyHash
-} from "@open-swe/shared/jwt";
-import { 
-  AgentCapability, 
-  GraphTarget
+import { verifyMCPAgentJWT, verifyAPIKeyHash } from "@open-swe/shared/jwt";
+import {
+  AgentCapability,
+  GraphTarget,
 } from "@open-swe/shared/open-swe/mcp-server";
 
 // TODO: Export from LangGraph SDK
@@ -66,13 +63,13 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 function checkRateLimit(
   identifier: string,
   maxRequests: number = 100,
-  windowMs: number = 60 * 1000 // 1 minute
+  windowMs: number = 60 * 1000, // 1 minute
 ): boolean {
   const now = Date.now();
   const key = `rate_limit:${identifier}`;
-  
+
   const current = rateLimitStore.get(key);
-  
+
   if (!current || now > current.resetTime) {
     // Reset or initialize
     rateLimitStore.set(key, {
@@ -81,11 +78,11 @@ function checkRateLimit(
     });
     return true;
   }
-  
+
   if (current.count >= maxRequests) {
     return false;
   }
-  
+
   current.count++;
   rateLimitStore.set(key, current);
   return true;
@@ -97,53 +94,55 @@ function checkRateLimit(
  */
 function getMCPAgentPermissions(
   _capabilities: string[],
-  _supportedGraphs: string[]
+  _supportedGraphs: string[],
 ): string[] {
   // Start with base MCP agent permissions (standard LangGraph permissions)
   const permissions = [...MCP_AGENT_PERMISSIONS];
-  
+
   // MCP agents get additional permissions based on their capabilities
   // We store the custom capabilities in metadata for later use
   // but only return standard LangGraph permissions here
-  
+
   return permissions;
 }
 
 /**
  * Authenticate MCP agent using JWT token
  */
-async function authenticateMCPAgentJWT(request: Request): Promise<AuthenticateReturn | null> {
+async function authenticateMCPAgentJWT(
+  request: Request,
+): Promise<AuthenticateReturn | null> {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
   }
-  
+
   const token = authHeader.substring(7);
   const jwtSecret = process.env.MCP_JWT_SECRET;
-  
+
   if (!jwtSecret) {
     throw new HTTPException(500, {
       message: "MCP JWT secret not configured",
     });
   }
-  
+
   const payload = verifyMCPAgentJWT(token, jwtSecret);
   if (!payload) {
     return null;
   }
-  
+
   // Check rate limit
   if (!checkRateLimit(`mcp_agent:${payload.agentId}`, 1000, 60 * 1000)) {
     throw new HTTPException(429, {
       message: "Rate limit exceeded for MCP agent",
     });
   }
-  
+
   const permissions = getMCPAgentPermissions(
     payload.capabilities,
-    payload.supportedGraphs
+    payload.supportedGraphs,
   );
-  
+
   return {
     identity: `mcp_agent:${payload.agentId}`,
     is_authenticated: true,
@@ -161,50 +160,56 @@ async function authenticateMCPAgentJWT(request: Request): Promise<AuthenticateRe
 /**
  * Authenticate MCP agent using API key
  */
-async function authenticateMCPAgentAPIKey(request: Request): Promise<AuthenticateReturn | null> {
+async function authenticateMCPAgentAPIKey(
+  request: Request,
+): Promise<AuthenticateReturn | null> {
   const apiKey = request.headers.get("x-mcp-api-key");
   if (!apiKey) {
     return null;
   }
-  
+
   const agentId = request.headers.get("x-mcp-agent-id");
   if (!agentId) {
     throw new HTTPException(400, {
       message: "MCP agent ID header required for API key authentication",
     });
   }
-  
+
   const apiSecret = process.env.MCP_API_SECRET;
   if (!apiSecret) {
     throw new HTTPException(500, {
       message: "MCP API secret not configured",
     });
   }
-  
+
   // Verify API key
   if (!verifyAPIKeyHash(apiKey, agentId, apiSecret)) {
     throw new HTTPException(401, {
       message: "Invalid MCP API key",
     });
   }
-  
+
   // Check rate limit
   if (!checkRateLimit(`mcp_agent:${agentId}`, 500, 60 * 1000)) {
     throw new HTTPException(429, {
       message: "Rate limit exceeded for MCP agent",
     });
   }
-  
+
   // For API key auth, we need to get agent capabilities from headers or database
   // For now, we'll use headers with fallback to basic permissions
   const capabilitiesHeader = request.headers.get("x-mcp-capabilities");
   const graphsHeader = request.headers.get("x-mcp-supported-graphs");
-  
-  const capabilities = capabilitiesHeader ? capabilitiesHeader.split(",") : [AgentCapability.GENERAL];
-  const supportedGraphs = graphsHeader ? graphsHeader.split(",") : [GraphTarget.PROGRAMMER];
-  
+
+  const capabilities = capabilitiesHeader
+    ? capabilitiesHeader.split(",")
+    : [AgentCapability.GENERAL];
+  const supportedGraphs = graphsHeader
+    ? graphsHeader.split(",")
+    : [GraphTarget.PROGRAMMER];
+
   const permissions = getMCPAgentPermissions(capabilities, supportedGraphs);
-  
+
   return {
     identity: `mcp_agent:${agentId}`,
     is_authenticated: true,
@@ -419,7 +424,7 @@ export function getMCPAgentMetadata(user: any): {
   if (!user.metadata || user.metadata.agent_type !== "mcp") {
     return null;
   }
-  
+
   return {
     agentType: user.metadata.agent_type,
     capabilities: user.metadata.agent_capabilities,
@@ -432,19 +437,22 @@ export function getMCPAgentMetadata(user: any): {
  */
 export function createMCPRateLimitMiddleware(
   maxRequests: number = 100,
-  windowMs: number = 60 * 1000
+  windowMs: number = 60 * 1000,
 ) {
   return (req: Request, next: () => void) => {
-    const identifier = req.headers.get("x-mcp-agent-id") || 
-                      req.headers.get("authorization")?.substring(7, 20) || // First part of JWT
-                      "unknown";
-    
-    if (!checkRateLimit(`mcp_middleware:${identifier}`, maxRequests, windowMs)) {
+    const identifier =
+      req.headers.get("x-mcp-agent-id") ||
+      req.headers.get("authorization")?.substring(7, 20) || // First part of JWT
+      "unknown";
+
+    if (
+      !checkRateLimit(`mcp_middleware:${identifier}`, maxRequests, windowMs)
+    ) {
       throw new HTTPException(429, {
         message: "Rate limit exceeded",
       });
     }
-    
+
     next();
   };
 }
@@ -463,15 +471,3 @@ export function cleanupRateLimitStore(): void {
 
 // Cleanup rate limit store every 5 minutes
 setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
-
-
-
-
-
-
-
-
-
-
-
-

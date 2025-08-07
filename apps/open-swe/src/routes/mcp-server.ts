@@ -29,7 +29,7 @@ export const mcpServerApp = new Hono();
  */
 const validateMCPAuth = (c: Context) => {
   const apiKey = c.req.header("x-mcp-api-key");
-  
+
   if (!apiKey) {
     logger.warn("Missing MCP API key in request");
     throw new HTTPException(401, {
@@ -40,7 +40,7 @@ const validateMCPAuth = (c: Context) => {
   // For now, we'll use a simple API key validation
   // In production, this should validate against a secure key store
   const validApiKey = process.env.MCP_API_KEY || "mcp-dev-key";
-  
+
   if (apiKey !== validApiKey) {
     logger.warn(`Invalid MCP API key provided: ${apiKey}`);
     throw new HTTPException(401, {
@@ -68,18 +68,27 @@ const parseJsonBody = async (c: Context) => {
  */
 const errorHandler = (err: Error, c: Context) => {
   logger.error(`MCP Server Error: ${err.message}`, { error: err });
-  
+
   if (err instanceof HTTPException) {
-    return c.json({
-      error: err.message,
-      code: err.status === 400 ? MCP_ERROR_CODES.VALIDATION_ERROR : MCP_ERROR_CODES.INTERNAL_ERROR,
-    }, err.status);
+    return c.json(
+      {
+        error: err.message,
+        code:
+          err.status === 400
+            ? MCP_ERROR_CODES.VALIDATION_ERROR
+            : MCP_ERROR_CODES.INTERNAL_ERROR,
+      },
+      err.status,
+    );
   }
 
-  return c.json({
-    error: "Internal server error",
-    code: MCP_ERROR_CODES.INTERNAL_ERROR,
-  }, 500);
+  return c.json(
+    {
+      error: "Internal server error",
+      code: MCP_ERROR_CODES.INTERNAL_ERROR,
+    },
+    500,
+  );
 };
 
 // Apply error handler
@@ -104,7 +113,7 @@ mcpServerApp.get(MCP_API_PATHS.HEALTH.CHECK, (c) => {
  */
 mcpServerApp.get(MCP_API_PATHS.HEALTH.METRICS, (c) => {
   validateMCPAuth(c);
-  const agents = Array.from(registeredAgents.values()).map(agent => ({
+  const agents = Array.from(registeredAgents.values()).map((agent) => ({
     agentId: agent.agentId,
     name: agent.name,
     capabilities: agent.capabilities,
@@ -114,7 +123,7 @@ mcpServerApp.get(MCP_API_PATHS.HEALTH.METRICS, (c) => {
     lastHeartbeat: agent.lastHeartbeat,
   }));
 
-  const tasks = Array.from(activeTasks.values()).map(task => ({
+  const tasks = Array.from(activeTasks.values()).map((task) => ({
     taskId: task.taskId,
     agentId: task.agentId,
     status: task.status,
@@ -127,9 +136,13 @@ mcpServerApp.get(MCP_API_PATHS.HEALTH.METRICS, (c) => {
     tasks,
     statistics: {
       totalAgents: registeredAgents.size,
-      activeAgents: agents.filter(a => a.lastHeartbeat && (Date.now() - a.lastHeartbeat) < 60000).length,
+      activeAgents: agents.filter(
+        (a) => a.lastHeartbeat && Date.now() - a.lastHeartbeat < 60000,
+      ).length,
       totalTasks: activeTasks.size,
-      runningTasks: tasks.filter(t => t.status === TaskExecutionStatus.RUNNING).length,
+      runningTasks: tasks.filter(
+        (t) => t.status === TaskExecutionStatus.RUNNING,
+      ).length,
       queuedTasks: taskQueue.size,
     },
   });
@@ -141,7 +154,7 @@ mcpServerApp.get(MCP_API_PATHS.HEALTH.METRICS, (c) => {
 mcpServerApp.post(MCP_API_PATHS.AGENTS.REGISTER, async (c) => {
   validateMCPAuth(c);
   const body = await parseJsonBody(c);
-  
+
   try {
     const agentData = AgentRegistrationSchema.parse({
       ...body,
@@ -163,12 +176,15 @@ mcpServerApp.post(MCP_API_PATHS.AGENTS.REGISTER, async (c) => {
       supportedGraphs: agentData.supportedGraphs,
     });
 
-    return c.json({
-      success: true,
-      message: "Agent registered successfully",
-      agentId: agentData.agentId,
-      registeredAt: agentData.registeredAt,
-    }, 201);
+    return c.json(
+      {
+        success: true,
+        message: "Agent registered successfully",
+        agentId: agentData.agentId,
+        registeredAt: agentData.registeredAt,
+      },
+      201,
+    );
   } catch (error) {
     if (error instanceof HTTPException) {
       throw error;
@@ -201,9 +217,14 @@ mcpServerApp.delete(MCP_API_PATHS.AGENTS.UNREGISTER, async (c) => {
   }
 
   // Cancel any active tasks for this agent
-  const agentTasks = Array.from(activeTasks.entries()).filter(([_, task]) => task.agentId === agentId);
+  const agentTasks = Array.from(activeTasks.entries()).filter(
+    ([_, task]) => task.agentId === agentId,
+  );
   for (const [, task] of agentTasks) {
-    if (task.status === TaskExecutionStatus.RUNNING || task.status === TaskExecutionStatus.QUEUED) {
+    if (
+      task.status === TaskExecutionStatus.RUNNING ||
+      task.status === TaskExecutionStatus.QUEUED
+    ) {
       task.status = TaskExecutionStatus.CANCELLED;
       task.updatedAt = Date.now();
       task.error = "Agent unregistered";
@@ -226,7 +247,7 @@ mcpServerApp.delete(MCP_API_PATHS.AGENTS.UNREGISTER, async (c) => {
 mcpServerApp.post(MCP_API_PATHS.AGENTS.HEARTBEAT, async (c) => {
   validateMCPAuth(c);
   const body = await parseJsonBody(c);
-  
+
   try {
     const heartbeat = AgentHeartbeatSchema.parse({
       ...body,
@@ -265,16 +286,21 @@ mcpServerApp.post(MCP_API_PATHS.AGENTS.HEARTBEAT, async (c) => {
  */
 mcpServerApp.get(MCP_API_PATHS.AGENTS.DISCOVER, (c) => {
   validateMCPAuth(c);
-  const agents = Array.from(registeredAgents.values()).map(agent => ({
+  const agents = Array.from(registeredAgents.values()).map((agent) => ({
     agentId: agent.agentId,
     name: agent.name,
     description: agent.description,
     capabilities: agent.capabilities,
     supportedGraphs: agent.supportedGraphs,
-    status: agent.lastHeartbeat && (Date.now() - agent.lastHeartbeat) < 60000 ? "active" : "offline",
-    currentTasks: Array.from(activeTasks.values()).filter(task => 
-      task.agentId === agent.agentId && 
-      (task.status === TaskExecutionStatus.RUNNING || task.status === TaskExecutionStatus.QUEUED)
+    status:
+      agent.lastHeartbeat && Date.now() - agent.lastHeartbeat < 60000
+        ? "active"
+        : "offline",
+    currentTasks: Array.from(activeTasks.values()).filter(
+      (task) =>
+        task.agentId === agent.agentId &&
+        (task.status === TaskExecutionStatus.RUNNING ||
+          task.status === TaskExecutionStatus.QUEUED),
     ).length,
     maxConcurrentTasks: agent.maxConcurrentTasks,
     registeredAt: agent.registeredAt || 0,
@@ -293,7 +319,7 @@ mcpServerApp.get(MCP_API_PATHS.AGENTS.DISCOVER, (c) => {
 mcpServerApp.post(MCP_API_PATHS.TASKS.SUBMIT, async (c) => {
   validateMCPAuth(c);
   const body = await parseJsonBody(c);
-  
+
   try {
     const taskRequest = AgentTaskRequestSchema.parse({
       ...body,
@@ -346,13 +372,16 @@ mcpServerApp.post(MCP_API_PATHS.TASKS.SUBMIT, async (c) => {
     // TODO: In the next task, we'll implement the MCPTaskManager to actually execute the task
     // For now, we just queue it and return success
 
-    return c.json({
-      success: true,
-      taskId: taskRequest.taskId,
-      status: TaskExecutionStatus.QUEUED,
-      message: "Task queued successfully",
-      queuedAt: Date.now(),
-    }, 201);
+    return c.json(
+      {
+        success: true,
+        taskId: taskRequest.taskId,
+        status: TaskExecutionStatus.QUEUED,
+        message: "Task queued successfully",
+        queuedAt: Date.now(),
+      },
+      201,
+    );
   } catch (error) {
     if (error instanceof HTTPException) {
       throw error;
@@ -367,107 +396,122 @@ mcpServerApp.post(MCP_API_PATHS.TASKS.SUBMIT, async (c) => {
 /**
  * Task status endpoint
  */
-mcpServerApp.get(MCP_API_PATHS.TASKS.STATUS.replace(":taskId", ":taskId"), (c) => {
-  validateMCPAuth(c);
-  const taskId = c.req.param("taskId");
-  
-  if (!taskId) {
-    throw new HTTPException(400, {
-      message: "Task ID is required",
-    });
-  }
+mcpServerApp.get(
+  MCP_API_PATHS.TASKS.STATUS.replace(":taskId", ":taskId"),
+  (c) => {
+    validateMCPAuth(c);
+    const taskId = c.req.param("taskId");
 
-  const task = activeTasks.get(taskId);
-  if (!task) {
-    throw new HTTPException(404, {
-      message: `Task ${taskId} not found`,
-    });
-  }
+    if (!taskId) {
+      throw new HTTPException(400, {
+        message: "Task ID is required",
+      });
+    }
 
-  return c.json(task);
-});
+    const task = activeTasks.get(taskId);
+    if (!task) {
+      throw new HTTPException(404, {
+        message: `Task ${taskId} not found`,
+      });
+    }
+
+    return c.json(task);
+  },
+);
 
 /**
  * Task results endpoint
  */
-mcpServerApp.get(MCP_API_PATHS.TASKS.RESULTS.replace(":taskId", ":taskId"), (c) => {
-  validateMCPAuth(c);
-  const taskId = c.req.param("taskId");
-  
-  if (!taskId) {
-    throw new HTTPException(400, {
-      message: "Task ID is required",
-    });
-  }
+mcpServerApp.get(
+  MCP_API_PATHS.TASKS.RESULTS.replace(":taskId", ":taskId"),
+  (c) => {
+    validateMCPAuth(c);
+    const taskId = c.req.param("taskId");
 
-  const task = activeTasks.get(taskId);
-  if (!task) {
-    throw new HTTPException(404, {
-      message: `Task ${taskId} not found`,
-    });
-  }
+    if (!taskId) {
+      throw new HTTPException(400, {
+        message: "Task ID is required",
+      });
+    }
 
-  if (task.status !== TaskExecutionStatus.COMPLETED && task.status !== TaskExecutionStatus.FAILED) {
-    throw new HTTPException(400, {
-      message: `Task ${taskId} is not completed yet. Current status: ${task.status}`,
-    });
-  }
+    const task = activeTasks.get(taskId);
+    if (!task) {
+      throw new HTTPException(404, {
+        message: `Task ${taskId} not found`,
+      });
+    }
 
-  return c.json({
-    taskId: task.taskId,
-    agentId: task.agentId,
-    status: task.status,
-    result: task.result,
-    startedAt: task.startedAt,
-    completedAt: task.completedAt,
-    logs: task.logs,
-    error: task.error,
-  });
-});
+    if (
+      task.status !== TaskExecutionStatus.COMPLETED &&
+      task.status !== TaskExecutionStatus.FAILED
+    ) {
+      throw new HTTPException(400, {
+        message: `Task ${taskId} is not completed yet. Current status: ${task.status}`,
+      });
+    }
+
+    return c.json({
+      taskId: task.taskId,
+      agentId: task.agentId,
+      status: task.status,
+      result: task.result,
+      startedAt: task.startedAt,
+      completedAt: task.completedAt,
+      logs: task.logs,
+      error: task.error,
+    });
+  },
+);
 
 /**
  * Task cancellation endpoint
  */
-mcpServerApp.post(MCP_API_PATHS.TASKS.CANCEL.replace(":taskId", ":taskId"), (c) => {
-  validateMCPAuth(c);
-  const taskId = c.req.param("taskId");
-  
-  if (!taskId) {
-    throw new HTTPException(400, {
-      message: "Task ID is required",
+mcpServerApp.post(
+  MCP_API_PATHS.TASKS.CANCEL.replace(":taskId", ":taskId"),
+  (c) => {
+    validateMCPAuth(c);
+    const taskId = c.req.param("taskId");
+
+    if (!taskId) {
+      throw new HTTPException(400, {
+        message: "Task ID is required",
+      });
+    }
+
+    const task = activeTasks.get(taskId);
+    if (!task) {
+      throw new HTTPException(404, {
+        message: `Task ${taskId} not found`,
+      });
+    }
+
+    if (
+      task.status === TaskExecutionStatus.COMPLETED ||
+      task.status === TaskExecutionStatus.FAILED
+    ) {
+      throw new HTTPException(400, {
+        message: `Task ${taskId} cannot be cancelled. Current status: ${task.status}`,
+      });
+    }
+
+    task.status = TaskExecutionStatus.CANCELLED;
+    task.updatedAt = Date.now();
+    task.error = "Task cancelled by user";
+
+    // Remove from queue if it's still there
+    taskQueue.delete(taskId);
+
+    logger.info(`Task cancelled: ${taskId}`);
+
+    return c.json({
+      success: true,
+      taskId,
+      status: TaskExecutionStatus.CANCELLED,
+      message: "Task cancelled successfully",
+      cancelledAt: Date.now(),
     });
-  }
-
-  const task = activeTasks.get(taskId);
-  if (!task) {
-    throw new HTTPException(404, {
-      message: `Task ${taskId} not found`,
-    });
-  }
-
-  if (task.status === TaskExecutionStatus.COMPLETED || task.status === TaskExecutionStatus.FAILED) {
-    throw new HTTPException(400, {
-      message: `Task ${taskId} cannot be cancelled. Current status: ${task.status}`,
-    });
-  }
-
-  task.status = TaskExecutionStatus.CANCELLED;
-  task.updatedAt = Date.now();
-  task.error = "Task cancelled by user";
-  
-  // Remove from queue if it's still there
-  taskQueue.delete(taskId);
-
-  logger.info(`Task cancelled: ${taskId}`);
-
-  return c.json({
-    success: true,
-    taskId,
-    status: TaskExecutionStatus.CANCELLED,
-    message: "Task cancelled successfully",
-    cancelledAt: Date.now(),
-  });
-});
+  },
+);
 
 /**
  * Task list endpoint
@@ -483,12 +527,12 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.LIST, (c) => {
 
   // Filter by agent ID if provided
   if (agentId) {
-    tasks = tasks.filter(task => task.agentId === agentId);
+    tasks = tasks.filter((task) => task.agentId === agentId);
   }
 
   // Filter by status if provided
   if (status && Object.values(TaskExecutionStatus).includes(status)) {
-    tasks = tasks.filter(task => task.status === status);
+    tasks = tasks.filter((task) => task.status === status);
   }
 
   // Sort by updated time (newest first)
@@ -513,25 +557,29 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.LIST, (c) => {
  */
 mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, (c) => {
   validateMCPAuth(c);
-  const queuedTasks = Array.from(taskQueue.entries()).map(([taskId, request]) => ({
-    taskId,
-    agentId: request.agentId,
-    title: request.title,
-    priority: request.priority,
-    targetGraph: request.targetGraph,
-    createdAt: request.createdAt,
-  }));
+  const queuedTasks = Array.from(taskQueue.entries()).map(
+    ([taskId, request]) => ({
+      taskId,
+      agentId: request.agentId,
+      title: request.title,
+      priority: request.priority,
+      targetGraph: request.targetGraph,
+      createdAt: request.createdAt,
+    }),
+  );
 
   // Sort by priority and creation time
   queuedTasks.sort((a, b) => {
     const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
-    const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2;
-    const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2;
-    
+    const aPriority =
+      priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2;
+    const bPriority =
+      priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2;
+
     if (aPriority !== bPriority) {
       return aPriority - bPriority;
     }
-    
+
     return (a.createdAt || 0) - (b.createdAt || 0);
   });
 
@@ -543,25 +591,3 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

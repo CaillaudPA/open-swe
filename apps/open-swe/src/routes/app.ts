@@ -9,4 +9,3 @@ app.post("/webhooks/github", issueWebhookHandler);
 
 // Mount MCP server routes
 app.route("/mcp", mcpServerApp);
-
