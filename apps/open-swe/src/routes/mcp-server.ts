@@ -40,7 +40,7 @@ export const mcpServerApp = new Hono();
 /**
  * Middleware to validate MCP API key authentication
  */
-const validateMCPAuth = async (c: Context<BlankEnv, any, BlankInput>, next: () => Promise<void>) => {
+const validateMCPAuth = async (c: Context, next: () => Promise<void>) => {
   const apiKey = c.req.header("x-mcp-api-key");
   
   if (!apiKey) {
@@ -548,4 +548,5 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 });
 
 export { mcpServerApp };
+
 
