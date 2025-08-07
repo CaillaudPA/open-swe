@@ -256,7 +256,18 @@ export const auth = new Auth()
       };
     }
 
-    // Check for local mode first
+    // Check for MCP agent authentication first (JWT or API key)
+    const mcpJWTAuth = await authenticateMCPAgentJWT(request);
+    if (mcpJWTAuth) {
+      return mcpJWTAuth;
+    }
+
+    const mcpAPIKeyAuth = await authenticateMCPAgentAPIKey(request);
+    if (mcpAPIKeyAuth) {
+      return mcpAPIKeyAuth;
+    }
+
+    // Check for local mode
     const localModeHeader = request.headers.get(LOCAL_MODE_HEADER);
     const isRunningLocalModeEnv = process.env.OPEN_SWE_LOCAL_MODE === "true";
     if (localModeHeader === "true" && isRunningLocalModeEnv) {
@@ -266,6 +277,7 @@ export const auth = new Auth()
         display_name: "Local User",
         metadata: {
           installation_name: "local-mode",
+          agent_type: "local",
         },
         permissions: LANGGRAPH_USER_PERMISSIONS,
       };
@@ -407,6 +419,7 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
 
 
 
