@@ -18,7 +18,11 @@ import { verifyGitHubWebhookOrThrow } from "./github.js";
 import { createWithOwnerMetadata, createOwnerFilter } from "./utils.js";
 import { LANGGRAPH_USER_PERMISSIONS } from "../constants.js";
 import { getGitHubPatFromRequest } from "../utils/github-pat.js";
-import { verifyJWT, createJWT } from "@open-swe/shared/jwt";
+import { 
+  verifyMCPAgentJWT, 
+  verifyAPIKeyHash,
+  type MCPAgentJWTPayload 
+} from "@open-swe/shared/jwt";
 import { 
   AgentCapability, 
   GraphTarget,
@@ -206,4 +210,5 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
 
