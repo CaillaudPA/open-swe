@@ -453,18 +453,14 @@ export function createMCPRateLimitMiddleware(
   maxRequests: number = 100,
   windowMs: number = 60 * 1000
 ) {
-  return (req: Request, res: Response, next: Function) => {
+  return (req: Request, next: () => void) => {
     const identifier = req.headers.get("x-mcp-agent-id") || 
                       req.headers.get("authorization")?.substring(7, 20) || // First part of JWT
-                      req.ip || 
                       "unknown";
     
     if (!checkRateLimit(`mcp_middleware:${identifier}`, maxRequests, windowMs)) {
       throw new HTTPException(429, {
         message: "Rate limit exceeded",
-        headers: {
-          "Retry-After": Math.ceil(windowMs / 1000).toString(),
-        },
       });
     }
     
@@ -486,6 +482,7 @@ export function cleanupRateLimitStore(): void {
 
 // Cleanup rate limit store every 5 minutes
 setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+
 
 
 
