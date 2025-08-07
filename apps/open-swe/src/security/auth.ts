@@ -20,13 +20,11 @@ import { LANGGRAPH_USER_PERMISSIONS } from "../constants.js";
 import { getGitHubPatFromRequest } from "../utils/github-pat.js";
 import { 
   verifyMCPAgentJWT, 
-  verifyAPIKeyHash,
-  type MCPAgentJWTPayload 
+  verifyAPIKeyHash
 } from "@open-swe/shared/jwt";
 import { 
   AgentCapability, 
-  GraphTarget,
-  type AgentRegistration 
+  GraphTarget
 } from "@open-swe/shared/open-swe/mcp-server";
 
 // TODO: Export from LangGraph SDK
@@ -556,6 +554,7 @@ export function cleanupRateLimitStore(): void {
 
 // Cleanup rate limit store every 5 minutes
 setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+
 
 
 
