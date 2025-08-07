@@ -271,7 +271,8 @@ mcpServerApp.post(MCP_API_PATHS.AGENTS.HEARTBEAT, async (c) => {
 /**
  * Agent discovery endpoint
  */
-mcpServerApp.get(MCP_API_PATHS.AGENTS.DISCOVER, validateMCPAuth, (c) => {
+mcpServerApp.get(MCP_API_PATHS.AGENTS.DISCOVER, (c) => {
+  validateMCPAuth(c);
   const agents = Array.from(registeredAgents.values()).map(agent => ({
     agentId: agent.agentId,
     name: agent.name,
@@ -544,6 +545,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
