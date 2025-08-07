@@ -375,7 +375,8 @@ mcpServerApp.post(MCP_API_PATHS.TASKS.SUBMIT, async (c) => {
 /**
  * Task status endpoint
  */
-mcpServerApp.get(MCP_API_PATHS.TASKS.STATUS.replace(":taskId", ":taskId"), validateMCPAuth, (c) => {
+mcpServerApp.get(MCP_API_PATHS.TASKS.STATUS.replace(":taskId", ":taskId"), (c) => {
+  validateMCPAuth(c);
   const taskId = c.req.param("taskId");
   
   if (!taskId) {
@@ -546,6 +547,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
