@@ -464,7 +464,7 @@ export class MCPTaskManager {
   private createPlannerGraphInput(
     taskRequest: AgentTaskRequest,
     context: TaskExecutionContext
-  ): PlannerGraphUpdate {
+  ): any {
     return {
       messages: [
         new HumanMessage({
@@ -486,7 +486,7 @@ export class MCPTaskManager {
   private createProgrammerGraphInput(
     taskRequest: AgentTaskRequest,
     context: TaskExecutionContext
-  ): ProgrammerGraphUpdate {
+  ): any {
     // Create a simple task plan for the programmer
     const taskPlan = createNewTask(
       taskRequest.description,
@@ -718,4 +718,5 @@ export function initializeMCPTaskManager(
   
   return taskManagerInstance;
 }
+
 
