@@ -146,8 +146,9 @@ mcpServerApp.get(MCP_API_PATHS.HEALTH.METRICS, (c) => {
 /**
  * Agent registration endpoint
  */
-mcpServerApp.post(MCP_API_PATHS.AGENTS.REGISTER, validateMCPAuth, parseJsonBody, async (c) => {
-  const body = c.get("parsedBody") as any;
+mcpServerApp.post(MCP_API_PATHS.AGENTS.REGISTER, async (c) => {
+  validateMCPAuth(c);
+  const body = await parseJsonBody(c);
   
   try {
     const agentData = AgentRegistrationSchema.parse({
@@ -541,6 +542,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
