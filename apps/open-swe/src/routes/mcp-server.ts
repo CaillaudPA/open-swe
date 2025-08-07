@@ -480,7 +480,8 @@ mcpServerApp.post(MCP_API_PATHS.TASKS.CANCEL.replace(":taskId", ":taskId"), (c) 
 /**
  * Task list endpoint
  */
-mcpServerApp.get(MCP_API_PATHS.TASKS.LIST, validateMCPAuth, (c) => {
+mcpServerApp.get(MCP_API_PATHS.TASKS.LIST, (c) => {
+  validateMCPAuth(c);
   const agentId = c.req.query("agentId");
   const status = c.req.query("status") as TaskExecutionStatus;
   const limit = parseInt(c.req.query("limit") || "50");
@@ -549,6 +550,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
