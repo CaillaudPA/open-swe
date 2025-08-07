@@ -40,6 +40,203 @@ export interface BaseAuthReturn {
 interface AuthenticateReturn extends BaseAuthReturn {
   metadata: {
     installation_name: string;
+    agent_type?: "github" | "mcp" | "local";
+    agent_capabilities?: string[];
+    supported_graphs?: string[];
+  };
+}
+
+/**
+ * MCP Agent permissions based on capabilities and supported graphs
+ */
+const MCP_AGENT_PERMISSIONS = [
+  "threads:create",
+  "threads:create_run",
+  "threads:read",
+  "assistants:read",
+  "store:access",
+] as const;
+
+/**
+ * Rate limiting storage (in production, use Redis or similar)
+ */
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+/**
+ * Check rate limit for a given identifier
+ */
+function checkRateLimit(
+  identifier: string,
+  maxRequests: number = 100,
+  windowMs: number = 60 * 1000 // 1 minute
+): boolean {
+  const now = Date.now();
+  const key = `rate_limit:${identifier}`;
+  
+  const current = rateLimitStore.get(key);
+  
+  if (!current || now > current.resetTime) {
+    // Reset or initialize
+    rateLimitStore.set(key, {
+      count: 1,
+      resetTime: now + windowMs,
+    });
+    return true;
+  }
+  
+  if (current.count >= maxRequests) {
+    return false;
+  }
+  
+  current.count++;
+  rateLimitStore.set(key, current);
+  return true;
+}
+
+/**
+ * Get permissions based on agent capabilities and supported graphs
+ */
+function getMCPAgentPermissions(
+  capabilities: string[],
+  supportedGraphs: string[]
+): string[] {
+  const permissions = [...MCP_AGENT_PERMISSIONS];
+  
+  // Add graph-specific permissions based on supported graphs
+  if (supportedGraphs.includes(GraphTarget.MANAGER)) {
+    permissions.push("graphs:manager:execute");
+  }
+  if (supportedGraphs.includes(GraphTarget.PLANNER)) {
+    permissions.push("graphs:planner:execute");
+  }
+  if (supportedGraphs.includes(GraphTarget.PROGRAMMER)) {
+    permissions.push("graphs:programmer:execute");
+  }
+  
+  // Add capability-specific permissions
+  if (capabilities.includes(AgentCapability.PLANNING)) {
+    permissions.push("tasks:planning");
+  }
+  if (capabilities.includes(AgentCapability.PROGRAMMING)) {
+    permissions.push("tasks:programming");
+  }
+  if (capabilities.includes(AgentCapability.MANAGEMENT)) {
+    permissions.push("tasks:management");
+  }
+  if (capabilities.includes(AgentCapability.REVIEW)) {
+    permissions.push("tasks:review");
+  }
+  
+  return permissions;
+}
+
+/**
+ * Authenticate MCP agent using JWT token
+ */
+async function authenticateMCPAgentJWT(request: Request): Promise<AuthenticateReturn | null> {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  
+  const token = authHeader.substring(7);
+  const jwtSecret = process.env.MCP_JWT_SECRET;
+  
+  if (!jwtSecret) {
+    throw new HTTPException(500, {
+      message: "MCP JWT secret not configured",
+    });
+  }
+  
+  const payload = verifyMCPAgentJWT(token, jwtSecret);
+  if (!payload) {
+    return null;
+  }
+  
+  // Check rate limit
+  if (!checkRateLimit(`mcp_agent:${payload.agentId}`, 1000, 60 * 1000)) {
+    throw new HTTPException(429, {
+      message: "Rate limit exceeded for MCP agent",
+    });
+  }
+  
+  const permissions = getMCPAgentPermissions(
+    payload.capabilities,
+    payload.supportedGraphs
+  );
+  
+  return {
+    identity: `mcp_agent:${payload.agentId}`,
+    is_authenticated: true,
+    display_name: payload.agentName,
+    permissions,
+    metadata: {
+      installation_name: "mcp-agent",
+      agent_type: "mcp",
+      agent_capabilities: payload.capabilities,
+      supported_graphs: payload.supportedGraphs,
+    },
+  };
+}
+
+/**
+ * Authenticate MCP agent using API key
+ */
+async function authenticateMCPAgentAPIKey(request: Request): Promise<AuthenticateReturn | null> {
+  const apiKey = request.headers.get("x-mcp-api-key");
+  if (!apiKey) {
+    return null;
+  }
+  
+  const agentId = request.headers.get("x-mcp-agent-id");
+  if (!agentId) {
+    throw new HTTPException(400, {
+      message: "MCP agent ID header required for API key authentication",
+    });
+  }
+  
+  const apiSecret = process.env.MCP_API_SECRET;
+  if (!apiSecret) {
+    throw new HTTPException(500, {
+      message: "MCP API secret not configured",
+    });
+  }
+  
+  // Verify API key
+  if (!verifyAPIKeyHash(apiKey, agentId, apiSecret)) {
+    throw new HTTPException(401, {
+      message: "Invalid MCP API key",
+    });
+  }
+  
+  // Check rate limit
+  if (!checkRateLimit(`mcp_agent:${agentId}`, 500, 60 * 1000)) {
+    throw new HTTPException(429, {
+      message: "Rate limit exceeded for MCP agent",
+    });
+  }
+  
+  // For API key auth, we need to get agent capabilities from headers or database
+  // For now, we'll use headers with fallback to basic permissions
+  const capabilitiesHeader = request.headers.get("x-mcp-capabilities");
+  const graphsHeader = request.headers.get("x-mcp-supported-graphs");
+  
+  const capabilities = capabilitiesHeader ? capabilitiesHeader.split(",") : [AgentCapability.GENERAL];
+  const supportedGraphs = graphsHeader ? graphsHeader.split(",") : [GraphTarget.PROGRAMMER];
+  
+  const permissions = getMCPAgentPermissions(capabilities, supportedGraphs);
+  
+  return {
+    identity: `mcp_agent:${agentId}`,
+    is_authenticated: true,
+    display_name: `MCP Agent ${agentId}`,
+    permissions,
+    metadata: {
+      installation_name: "mcp-agent",
+      agent_type: "mcp",
+      agent_capabilities: capabilities,
+      supported_graphs: supportedGraphs,
+    },
   };
 }
 
@@ -210,5 +407,6 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
 
 
