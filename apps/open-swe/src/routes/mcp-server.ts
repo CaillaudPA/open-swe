@@ -519,7 +519,8 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.LIST, (c) => {
 /**
  * Task queue status endpoint
  */
-mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
+mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, (c) => {
+  validateMCPAuth(c);
   const queuedTasks = Array.from(taskQueue.entries()).map(([taskId, request]) => ({
     taskId,
     agentId: request.agentId,
@@ -550,6 +551,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
