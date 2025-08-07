@@ -303,7 +303,7 @@ mcpServerApp.get(MCP_API_PATHS.AGENTS.DISCOVER, validateMCPAuth, (c) => {
  * Task submission endpoint
  */
 mcpServerApp.post(MCP_API_PATHS.TASKS.SUBMIT, validateMCPAuth, parseJsonBody, async (c) => {
-  const body = c.get("body");
+  const body = c.get("parsedBody") as any;
   
   try {
     const taskRequest = AgentTaskRequestSchema.parse({
@@ -548,6 +548,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 });
 
 export { mcpServerApp };
+
 
 
 
