@@ -1,13 +1,11 @@
 import { Hono } from "hono";
 import { Context } from "hono";
-import { BlankEnv, BlankInput } from "hono/types";
 import { v4 as uuidv4 } from "uuid";
 import { HTTPException } from "hono/http-exception";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import {
   AgentRegistrationSchema,
   AgentTaskRequestSchema,
-  AgentTaskResponseSchema,
   AgentHeartbeatSchema,
   TaskExecutionStatus,
   MCP_API_PATHS,
@@ -15,13 +13,7 @@ import {
   type AgentRegistration,
   type AgentTaskRequest,
   type AgentTaskResponse,
-  type AgentHeartbeat,
 } from "@open-swe/shared/open-swe/mcp-server";
-import {
-  MANAGER_GRAPH_ID,
-  PLANNER_GRAPH_ID,
-  PROGRAMMER_GRAPH_ID,
-} from "@open-swe/shared/constants";
 
 const logger = createLogger(LogLevel.INFO, "MCPServer");
 
@@ -551,6 +543,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
