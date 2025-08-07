@@ -93,37 +93,18 @@ function checkRateLimit(
 
 /**
  * Get permissions based on agent capabilities and supported graphs
+ * Uses standard LangGraph permissions for compatibility
  */
 function getMCPAgentPermissions(
   capabilities: string[],
   supportedGraphs: string[]
 ): string[] {
+  // Start with base MCP agent permissions (standard LangGraph permissions)
   const permissions = [...MCP_AGENT_PERMISSIONS];
   
-  // Add graph-specific permissions based on supported graphs
-  if (supportedGraphs.includes(GraphTarget.MANAGER)) {
-    permissions.push("graphs:manager:execute");
-  }
-  if (supportedGraphs.includes(GraphTarget.PLANNER)) {
-    permissions.push("graphs:planner:execute");
-  }
-  if (supportedGraphs.includes(GraphTarget.PROGRAMMER)) {
-    permissions.push("graphs:programmer:execute");
-  }
-  
-  // Add capability-specific permissions
-  if (capabilities.includes(AgentCapability.PLANNING)) {
-    permissions.push("tasks:planning");
-  }
-  if (capabilities.includes(AgentCapability.PROGRAMMING)) {
-    permissions.push("tasks:programming");
-  }
-  if (capabilities.includes(AgentCapability.MANAGEMENT)) {
-    permissions.push("tasks:management");
-  }
-  if (capabilities.includes(AgentCapability.REVIEW)) {
-    permissions.push("tasks:review");
-  }
+  // MCP agents get additional permissions based on their capabilities
+  // We store the custom capabilities in metadata for later use
+  // but only return standard LangGraph permissions here
   
   return permissions;
 }
@@ -482,6 +463,7 @@ export function cleanupRateLimitStore(): void {
 
 // Cleanup rate limit store every 5 minutes
 setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+
 
 
 
