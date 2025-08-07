@@ -68,7 +68,7 @@ export function verifyMCPAgentJWT(
     }) as MCPAgentJWTPayload;
     
     return decoded;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -92,4 +92,5 @@ export function verifyAPIKeyHash(
   const expectedHash = createAPIKeyHash(agentId, secret);
   return apiKey === expectedHash;
 }
+
 
