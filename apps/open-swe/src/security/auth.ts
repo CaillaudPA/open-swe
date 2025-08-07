@@ -420,7 +420,143 @@ export const auth = new Auth()
   // STORE: permission-based access
   .on("store", ({ user }) => {
     return { owner: user.identity };
+  })
+
+  // MCP AGENT: Graph execution permissions
+  .on("graphs:manager:execute", ({ user }) => {
+    // Only allow if user has manager graph permission
+    if (user.permissions.includes("graphs:manager:execute")) {
+      return { agent: user.identity };
+    }
+    throw new HTTPException(403, {
+      message: "Insufficient permissions for manager graph execution",
+    });
+  })
+  
+  .on("graphs:planner:execute", ({ user }) => {
+    // Only allow if user has planner graph permission
+    if (user.permissions.includes("graphs:planner:execute")) {
+      return { agent: user.identity };
+    }
+    throw new HTTPException(403, {
+      message: "Insufficient permissions for planner graph execution",
+    });
+  })
+  
+  .on("graphs:programmer:execute", ({ user }) => {
+    // Only allow if user has programmer graph permission
+    if (user.permissions.includes("graphs:programmer:execute")) {
+      return { agent: user.identity };
+    }
+    throw new HTTPException(403, {
+      message: "Insufficient permissions for programmer graph execution",
+    });
+  })
+
+  // MCP AGENT: Task-specific permissions
+  .on("tasks:planning", ({ user }) => {
+    if (user.permissions.includes("tasks:planning")) {
+      return { agent: user.identity };
+    }
+    throw new HTTPException(403, {
+      message: "Insufficient permissions for planning tasks",
+    });
+  })
+  
+  .on("tasks:programming", ({ user }) => {
+    if (user.permissions.includes("tasks:programming")) {
+      return { agent: user.identity };
+    }
+    throw new HTTPException(403, {
+      message: "Insufficient permissions for programming tasks",
+    });
+  })
+  
+  .on("tasks:management", ({ user }) => {
+    if (user.permissions.includes("tasks:management")) {
+      return { agent: user.identity };
+    }
+    throw new HTTPException(403, {
+      message: "Insufficient permissions for management tasks",
+    });
+  })
+  
+  .on("tasks:review", ({ user }) => {
+    if (user.permissions.includes("tasks:review")) {
+      return { agent: user.identity };
+    }
+    throw new HTTPException(403, {
+      message: "Insufficient permissions for review tasks",
+    });
   });
+
+/**
+ * Utility function to check if user has specific MCP permission
+ */
+export function hasMCPPermission(user: any, permission: string): boolean {
+  return user.permissions && user.permissions.includes(permission);
+}
+
+/**
+ * Utility function to get MCP agent metadata
+ */
+export function getMCPAgentMetadata(user: any): {
+  agentType?: string;
+  capabilities?: string[];
+  supportedGraphs?: string[];
+} | null {
+  if (!user.metadata || user.metadata.agent_type !== "mcp") {
+    return null;
+  }
+  
+  return {
+    agentType: user.metadata.agent_type,
+    capabilities: user.metadata.agent_capabilities,
+    supportedGraphs: user.metadata.supported_graphs,
+  };
+}
+
+/**
+ * Rate limiting middleware for MCP endpoints
+ */
+export function createMCPRateLimitMiddleware(
+  maxRequests: number = 100,
+  windowMs: number = 60 * 1000
+) {
+  return (req: Request, res: Response, next: Function) => {
+    const identifier = req.headers.get("x-mcp-agent-id") || 
+                      req.headers.get("authorization")?.substring(7, 20) || // First part of JWT
+                      req.ip || 
+                      "unknown";
+    
+    if (!checkRateLimit(`mcp_middleware:${identifier}`, maxRequests, windowMs)) {
+      throw new HTTPException(429, {
+        message: "Rate limit exceeded",
+        headers: {
+          "Retry-After": Math.ceil(windowMs / 1000).toString(),
+        },
+      });
+    }
+    
+    next();
+  };
+}
+
+/**
+ * Cleanup rate limit store (should be called periodically)
+ */
+export function cleanupRateLimitStore(): void {
+  const now = Date.now();
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}
+
+// Cleanup rate limit store every 5 minutes
+setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+
 
 
 
