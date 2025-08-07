@@ -547,7 +547,9 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
   });
 });
 
-export { mcpServerApp };
+// Export the MCP server app
+export default mcpServerApp;
+
 
 
 
