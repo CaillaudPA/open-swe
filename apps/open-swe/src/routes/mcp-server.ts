@@ -191,8 +191,9 @@ mcpServerApp.post(MCP_API_PATHS.AGENTS.REGISTER, async (c) => {
 /**
  * Agent unregistration endpoint
  */
-mcpServerApp.delete(MCP_API_PATHS.AGENTS.UNREGISTER, validateMCPAuth, parseJsonBody, async (c) => {
-  const body = c.get("parsedBody") as any;
+mcpServerApp.delete(MCP_API_PATHS.AGENTS.UNREGISTER, async (c) => {
+  validateMCPAuth(c);
+  const body = await parseJsonBody(c);
   const { agentId } = body;
 
   if (!agentId) {
@@ -542,6 +543,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
