@@ -9,7 +9,6 @@ import {
   GraphTarget,
   TaskPriority,
   MCP_DEFAULTS,
-  MCP_ERROR_CODES,
   type AgentTaskRequest,
   type AgentTaskResponse,
   type TaskExecutionResult,
@@ -20,14 +19,8 @@ import {
   PLANNER_GRAPH_ID,
   PROGRAMMER_GRAPH_ID,
   OPEN_SWE_STREAM_MODE,
-  GITHUB_INSTALLATION_NAME,
-  GITHUB_USER_ID_HEADER,
-  GITHUB_USER_LOGIN_HEADER,
-  GITHUB_INSTALLATION_ID,
 } from "@open-swe/shared/constants";
 import { ManagerGraphUpdate } from "@open-swe/shared/open-swe/manager/types";
-import { PlannerGraphUpdate } from "@open-swe/shared/open-swe/planner/types";
-import { ProgrammerGraphUpdate } from "@open-swe/shared/open-swe/programmer/types";
 
 const logger = createLogger(LogLevel.INFO, "MCPTaskManager");
 
@@ -725,3 +718,4 @@ export function initializeMCPTaskManager(
   
   return taskManagerInstance;
 }
+
