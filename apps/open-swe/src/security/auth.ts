@@ -310,6 +310,7 @@ export const auth = new Auth()
         display_name: user.login,
         metadata: {
           installation_name: "pat-auth",
+          agent_type: "github",
         },
         permissions: LANGGRAPH_USER_PERMISSIONS,
       };
@@ -419,6 +420,7 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
 
 
 
