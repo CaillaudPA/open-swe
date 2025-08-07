@@ -67,10 +67,10 @@ const validateMCPAuth = async (c: Context<BlankEnv, any, BlankInput>, next: () =
 /**
  * Middleware to parse and validate JSON body
  */
-const parseJsonBody = async (c: Context<BlankEnv, any, BlankInput>, next: () => Promise<void>) => {
+const parseJsonBody = async (c: Context, next: () => Promise<void>) => {
   try {
     const body = await c.req.json();
-    c.set("body", body);
+    c.set("parsedBody", body);
     await next();
   } catch (error) {
     logger.error(`Failed to parse JSON body: ${error}`);
@@ -548,3 +548,4 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 });
 
 export { mcpServerApp };
+
