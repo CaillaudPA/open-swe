@@ -216,7 +216,7 @@ mcpServerApp.delete(MCP_API_PATHS.AGENTS.UNREGISTER, validateMCPAuth, parseJsonB
 
   // Cancel any active tasks for this agent
   const agentTasks = Array.from(activeTasks.entries()).filter(([_, task]) => task.agentId === agentId);
-  for (const [taskId, task] of agentTasks) {
+  for (const [, task] of agentTasks) {
     if (task.status === TaskExecutionStatus.RUNNING || task.status === TaskExecutionStatus.QUEUED) {
       task.status = TaskExecutionStatus.CANCELLED;
       task.updatedAt = Date.now();
@@ -549,6 +549,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
