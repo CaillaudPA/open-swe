@@ -418,74 +418,6 @@ export const auth = new Auth()
   // STORE: permission-based access
   .on("store", ({ user }) => {
     return { owner: user.identity };
-  })
-
-  // MCP AGENT: Graph execution permissions
-  .on("graphs:manager:execute", ({ user }) => {
-    // Only allow if user has manager graph permission
-    if (user.permissions.includes("graphs:manager:execute")) {
-      return { agent: user.identity };
-    }
-    throw new HTTPException(403, {
-      message: "Insufficient permissions for manager graph execution",
-    });
-  })
-  
-  .on("graphs:planner:execute", ({ user }) => {
-    // Only allow if user has planner graph permission
-    if (user.permissions.includes("graphs:planner:execute")) {
-      return { agent: user.identity };
-    }
-    throw new HTTPException(403, {
-      message: "Insufficient permissions for planner graph execution",
-    });
-  })
-  
-  .on("graphs:programmer:execute", ({ user }) => {
-    // Only allow if user has programmer graph permission
-    if (user.permissions.includes("graphs:programmer:execute")) {
-      return { agent: user.identity };
-    }
-    throw new HTTPException(403, {
-      message: "Insufficient permissions for programmer graph execution",
-    });
-  })
-
-  // MCP AGENT: Task-specific permissions
-  .on("tasks:planning", ({ user }) => {
-    if (user.permissions.includes("tasks:planning")) {
-      return { agent: user.identity };
-    }
-    throw new HTTPException(403, {
-      message: "Insufficient permissions for planning tasks",
-    });
-  })
-  
-  .on("tasks:programming", ({ user }) => {
-    if (user.permissions.includes("tasks:programming")) {
-      return { agent: user.identity };
-    }
-    throw new HTTPException(403, {
-      message: "Insufficient permissions for programming tasks",
-    });
-  })
-  
-  .on("tasks:management", ({ user }) => {
-    if (user.permissions.includes("tasks:management")) {
-      return { agent: user.identity };
-    }
-    throw new HTTPException(403, {
-      message: "Insufficient permissions for management tasks",
-    });
-  })
-  
-  .on("tasks:review", ({ user }) => {
-    if (user.permissions.includes("tasks:review")) {
-      return { agent: user.identity };
-    }
-    throw new HTTPException(403, {
-      message: "Insufficient permissions for review tasks",
-    });
   });
 
 /**
@@ -554,6 +486,7 @@ export function cleanupRateLimitStore(): void {
 
 // Cleanup rate limit store every 5 minutes
 setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+
 
 
 
