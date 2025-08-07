@@ -77,7 +77,7 @@ export function verifyMCPAgentJWT(
  * Creates a simple API key hash for MCP agents
  */
 export function createAPIKeyHash(agentId: string, secret: string): string {
-  const crypto = require('crypto');
+  const crypto = await import('crypto');
   return crypto.createHmac('sha256', secret).update(agentId).digest('hex');
 }
 
@@ -92,5 +92,6 @@ export function verifyAPIKeyHash(
   const expectedHash = createAPIKeyHash(agentId, secret);
   return apiKey === expectedHash;
 }
+
 
 
