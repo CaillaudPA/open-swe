@@ -96,8 +96,8 @@ function checkRateLimit(
  * Uses standard LangGraph permissions for compatibility
  */
 function getMCPAgentPermissions(
-  capabilities: string[],
-  supportedGraphs: string[]
+  _capabilities: string[],
+  _supportedGraphs: string[]
 ): string[] {
   // Start with base MCP agent permissions (standard LangGraph permissions)
   const permissions = [...MCP_AGENT_PERMISSIONS];
@@ -463,6 +463,7 @@ export function cleanupRateLimitStore(): void {
 
 // Cleanup rate limit store every 5 minutes
 setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+
 
 
 
