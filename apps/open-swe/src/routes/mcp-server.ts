@@ -436,7 +436,8 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.RESULTS.replace(":taskId", ":taskId"), (c) 
 /**
  * Task cancellation endpoint
  */
-mcpServerApp.post(MCP_API_PATHS.TASKS.CANCEL.replace(":taskId", ":taskId"), validateMCPAuth, (c) => {
+mcpServerApp.post(MCP_API_PATHS.TASKS.CANCEL.replace(":taskId", ":taskId"), (c) => {
+  validateMCPAuth(c);
   const taskId = c.req.param("taskId");
   
   if (!taskId) {
@@ -548,6 +549,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
