@@ -33,9 +33,9 @@ const taskQueue = new Map<string, AgentTaskRequest>();
 export const mcpServerApp = new Hono();
 
 /**
- * Middleware to validate MCP API key authentication
+ * Helper function to validate MCP API key authentication
  */
-const validateMCPAuth = async (c: Context, next: () => Promise<void>) => {
+const validateMCPAuth = (c: Context) => {
   const apiKey = c.req.header("x-mcp-api-key");
   
   if (!apiKey) {
@@ -55,18 +55,14 @@ const validateMCPAuth = async (c: Context, next: () => Promise<void>) => {
       message: "Invalid MCP API key",
     });
   }
-
-  await next();
 };
 
 /**
- * Middleware to parse and validate JSON body
+ * Helper function to parse JSON body
  */
-const parseJsonBody = async (c: Context, next: () => Promise<void>) => {
+const parseJsonBody = async (c: Context) => {
   try {
-    const body = await c.req.json();
-    c.set("parsedBody", body);
-    await next();
+    return await c.req.json();
   } catch (error) {
     logger.error(`Failed to parse JSON body: ${error}`);
     throw new HTTPException(400, {
@@ -544,6 +540,7 @@ mcpServerApp.get(MCP_API_PATHS.TASKS.QUEUE, validateMCPAuth, (c) => {
 
 // Export the MCP server app
 export default mcpServerApp;
+
 
 
 
